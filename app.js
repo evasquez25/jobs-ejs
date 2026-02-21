@@ -3,6 +3,10 @@ require("express-async-errors");
 require("dotenv").config(); // to load the .env file into the process.env object
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
+const passport = require("passport");
+const passportInit = require("./passport/passportInit");
+const secretWordRouter = require("./routes/secretWord");
+const auth = require("./middleware/auth");
 
 const app = express();
 
@@ -35,31 +39,25 @@ if (app.get("env") === "production") {
 
 app.use(session(sessionParms));
 
+// Passport handling
+passportInit();
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Flash messages
 app.use(require("connect-flash")());
 
-// secret word handling
-app.get("/secretWord", (req, res) => {
-  if (!req.session.secretWord) {
-    req.session.secretWord = "syzygy";
-  }
-  res.locals.info = req.flash("info");
-  res.locals.errors = req.flash("error");
-  res.render("secretWord", {
-    secretWord: req.session.secretWord,
+app.use(require("./middleware/storeLocals"));
+app.get("/", (req, res) => {
+  res.render("index", {
+    user: req.user,
   });
 });
+app.use("/sessions", require("./routes/sessionRoutes"));
 
-app.post("/secretWord", (req, res) => {
-  if (req.body.secretWord.toUpperCase()[0] == "P") {
-    req.flash("error", "That word won't work!");
-    req.flash("error", "you can't use words that start with P.");
-  } else {
-    req.session.secretWord = req.body.secretWord;
-    req.flash("info", "The secret word was changed.");
-  }
-  res.redirect("/secretWord");
-});
+
+// secret word handling
+app.use("/secretWord", auth, secretWordRouter); // run auth before secretWordRouter
 
 app.use((req, res) => {
   res.status(404).send(`That page (${req.url}) was not found.`);
@@ -74,6 +72,7 @@ const port = process.env.PORT || 3000;
 
 const start = async () => {
   try {
+    await require("./db/connect")(process.env.MONGO_URI);
     app.listen(port, () =>
       console.log(`Server is listening on port ${port}...`),
     );
