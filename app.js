@@ -1,29 +1,42 @@
 const express = require("express");
 require("express-async-errors");
-require("dotenv").config(); // to load the .env file into the process.env object
+require("dotenv").config();
+
+// Database
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
+const url = process.env.MONGO_URI;
+
+// Authentication
 const passport = require("passport");
 const passportInit = require("./passport/passportInit");
+
+// Routes
 const secretWordRouter = require("./routes/secretWord");
 const auth = require("./middleware/auth");
 
+// Middleware
+const storeLocals = require("./middleware/storeLocals");
+
 const app = express();
 
+// View engine
 app.set("view engine", "ejs");
+
+// Body parser
 app.use(require("body-parser").urlencoded({ extended: true }));
 
-const url = process.env.MONGO_URI;
-
+// Session store setup
 const store = new MongoDBStore({
-  // may throw an error, which won't be caught
   uri: url,
   collection: "mySessions",
 });
+
 store.on("error", function (error) {
   console.log(error);
 });
 
+// Session configuration
 const sessionParms = {
   secret: process.env.SESSION_SECRET,
   resave: true,
@@ -33,13 +46,14 @@ const sessionParms = {
 };
 
 if (app.get("env") === "production") {
-  app.set("trust proxy", 1); // trust first proxy
-  sessionParms.cookie.secure = true; // serve secure cookies
+  app.set("trust proxy", 1);
+  sessionParms.cookie.secure = true;
 }
 
+// Middleware setup (order matters!)
 app.use(session(sessionParms));
 
-// Passport handling
+// Authentication middleware
 passportInit();
 app.use(passport.initialize());
 app.use(passport.session());
@@ -47,7 +61,8 @@ app.use(passport.session());
 // Flash messages
 app.use(require("connect-flash")());
 
-app.use(require("./middleware/storeLocals"));
+// Custom middleware for template locals
+app.use(storeLocals);
 app.get("/", (req, res) => {
   res.render("index", {
     user: req.user,
@@ -57,8 +72,9 @@ app.use("/sessions", require("./routes/sessionRoutes"));
 
 
 // secret word handling
-app.use("/secretWord", auth, secretWordRouter); // run auth before secretWordRouter
+app.use("/secretWord", auth, secretWordRouter);
 
+// Error handling
 app.use((req, res) => {
   res.status(404).send(`That page (${req.url}) was not found.`);
 });
@@ -68,6 +84,7 @@ app.use((err, req, res, next) => {
   console.log(err);
 });
 
+// Server startup
 const port = process.env.PORT || 3000;
 
 const start = async () => {
