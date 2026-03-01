@@ -2,6 +2,11 @@ const express = require("express");
 require("express-async-errors");
 require("dotenv").config();
 
+// Security
+const helmet = require("helmet");
+const xss = require("xss-clean");
+const rateLimiter = require("express-rate-limit");
+
 // Database
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
@@ -13,6 +18,7 @@ const passportInit = require("./passport/passportInit");
 
 // Routes
 const secretWordRouter = require("./routes/secretWord");
+const jobsRouter = require("./routes/jobs");
 const auth = require("./middleware/auth");
 
 // Middleware
@@ -50,6 +56,14 @@ if (app.get("env") === "production") {
   sessionParms.cookie.secure = true;
 }
 
+// Security middleware
+app.use(helmet());
+app.use(xss());
+app.use(rateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+}));
+
 // Middleware setup (order matters!)
 app.use(session(sessionParms));
 
@@ -73,6 +87,9 @@ app.use("/sessions", require("./routes/sessionRoutes"));
 
 // secret word handling
 app.use("/secretWord", auth, secretWordRouter);
+
+// jobs handling
+app.use("/jobs", auth, jobsRouter);
 
 // Error handling
 app.use((req, res) => {

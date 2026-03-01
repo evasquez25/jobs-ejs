@@ -1,0 +1,27 @@
+<%- include("partials/head.ejs") %>
+<%- include("partials/header.ejs") %>
+    <h2>Add Job</h2>
+    <% if (job) { %>
+        <form method="POST" action="/jobs/edit/<%= job.id %>">
+            <input type="text" name="company" value="<%= job.company %>" required>
+            <input type="text" name="position" value="<%= job.position %>" required>
+            <select name="status" required>
+                <option value="Interview" <%= job.status === 'Interview' ? 'selected' : '' %>>Interview</option>
+                <option value="Declined" <%= job.status === 'Declined' ? 'selected' : '' %>>Declined</option>
+                <option value="Pending" <%= job.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+            </select>
+            <button type="submit">Update Job</button>
+        </form>
+    <% } else { %>
+        <form method="POST" action="/jobs">
+            <input type="text" name="company" placeholder="Company" required>
+            <input type="text" name="position" placeholder="Position" required>
+            <select name="status" required>
+                <option value="Interview">Interview</option>
+                <option value="Declined">Declined</option>
+                <option value="Pending">Pending</option>
+            </select>
+            <button type="submit">Add Job</button>
+        </form>
+    <% } %>
+<%- include("partials/footer.ejs") %>
