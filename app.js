@@ -3,9 +3,11 @@ require("express-async-errors");
 require("dotenv").config();
 
 // Security
-const helmet = require("helmet");
+// const helmet = require("helmet");
 const xss = require("xss-clean");
 const rateLimiter = require("express-rate-limit");
+const cookieParser = require("cookie-parser");
+const csrf = require("host-csrf");
 
 // Database
 const session = require("express-session");
@@ -57,14 +59,15 @@ if (app.get("env") === "production") {
 }
 
 // Security middleware
-app.use(helmet());
-app.use(xss());
+// app.use(helmet());
+// app.use(xss());
 app.use(rateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 }));
 
 // Middleware setup (order matters!)
+app.use(cookieParser(process.env.SESSION_SECRET));
 app.use(session(sessionParms));
 
 // Authentication middleware
@@ -97,8 +100,11 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  res.status(500).send(err.message);
+  if (err && err.name === "CSRFError") {
+    return res.status(403).send("CSRF token mismatch");
+  }
   console.log(err);
+  return res.status(500).send(err.message);
 });
 
 // Server startup

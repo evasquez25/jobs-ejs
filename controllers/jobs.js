@@ -1,11 +1,13 @@
 const Job = require("../models/Job");
+const csrf = require("host-csrf");
 
 const getJobsList = async (req, res) => {
   try {
     // Get jobs for the logged-in user
     const jobs = await Job.find({ createdBy: req.user._id });
+    const csrfToken = csrf.getToken(req, res);
     
-    res.render("jobs", { jobs });
+    res.render("jobs", { jobs, csrfToken });
   } catch (error) {
     console.error("Error fetching jobs:", error);
     res.status(500).send("Error fetching jobs");

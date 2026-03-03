@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const csrf = require("host-csrf");
+
 const { 
     getJobsList, 
     addJob, 
@@ -20,7 +22,7 @@ router.route("/new").get((req, res) => {
 router.route("/edit/:id").get(getEditJob).post(updateJob);
 
 // Delete a job
-router.route("/delete/:id").post(deleteJob);
+router.route("/delete/:id").post(csrf.csrf(), deleteJob);
 
 
 module.exports = router;
