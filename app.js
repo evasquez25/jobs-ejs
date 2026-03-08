@@ -32,7 +32,7 @@ const app = express();
 app.set("view engine", "ejs");
 
 // Body parser
-app.use(require("body-parser").urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 
 // Session store setup
 const store = new MongoDBStore({
@@ -81,8 +81,10 @@ app.use(require("connect-flash")());
 // Custom middleware for template locals
 app.use(storeLocals);
 app.get("/", (req, res) => {
+  const csrfToken = csrf.getToken(req, res);
   res.render("index", {
     user: req.user,
+    csrfToken: csrfToken,
   });
 });
 app.use("/sessions", require("./routes/sessionRoutes"));

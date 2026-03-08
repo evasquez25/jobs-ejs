@@ -1,6 +1,8 @@
 const express = require("express");
 const passport = require("passport");
 const router = express.Router();
+const csrf = require("host-csrf");
+const csrfMiddleware = csrf.csrf();
 
 const {
   logonShow,
@@ -10,6 +12,7 @@ const {
 } = require("../controllers/sessionController");
 
 router.route("/register").get(registerShow).post(registerDo);
+
 router
   .route("/logon")
   .get(logonShow)
@@ -20,6 +23,7 @@ router
       failureFlash: true,
     })
   );
-router.route("/logoff").post(logoff);
+
+router.route("/logoff").post(csrfMiddleware, logoff);
 
 module.exports = router;

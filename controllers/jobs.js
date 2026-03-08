@@ -18,8 +18,19 @@ const getEditJob = async (req, res) => {
   try {
     // Get job for the logged-in user
     const job = await Job.findById(req.params.id);
+    const csrfToken = csrf.getToken(req, res);
     
-    res.render("job", { job });
+    res.render("job", { job, csrfToken });
+  } catch (error) {
+    console.error("Error fetching job:", error);
+    res.status(500).send("Error fetching job");
+  }
+};
+
+const getAddJob = async (req, res) => {
+  try {
+    const csrfToken = csrf.getToken(req, res);
+    res.render("job", { job: null, csrfToken });
   } catch (error) {
     console.error("Error fetching job:", error);
     res.status(500).send("Error fetching job");
@@ -84,6 +95,7 @@ const deleteJob = async (req, res) => {
 module.exports = {
   getJobsList,
   getEditJob,
+  getAddJob,
   addJob,
   updateJob,
   deleteJob,

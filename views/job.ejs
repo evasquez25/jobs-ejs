@@ -3,6 +3,7 @@
     <h2>Add Job</h2>
     <% if (job) { %>
         <form method="POST" action="/jobs/edit/<%= job.id %>">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="text" name="company" value="<%= job.company %>" required>
             <input type="text" name="position" value="<%= job.position %>" required>
             <select name="status" required>
@@ -14,6 +15,7 @@
         </form>
     <% } else { %>
         <form method="POST" action="/jobs">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="text" name="company" placeholder="Company" required>
             <input type="text" name="position" placeholder="Position" required>
             <select name="status" required>
