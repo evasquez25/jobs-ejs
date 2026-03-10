@@ -1,29 +1,50 @@
 const express = require("express");
 require("express-async-errors");
-require("dotenv").config(); // to load the .env file into the process.env object
+require("dotenv").config();
+
+// Security
+// const helmet = require("helmet");
+const xss = require("xss-clean");
+const rateLimiter = require("express-rate-limit");
+const cookieParser = require("cookie-parser");
+const csrf = require("host-csrf");
+
+// Database
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
+const url = process.env.MONGO_URI;
+
+// Authentication
 const passport = require("passport");
 const passportInit = require("./passport/passportInit");
+
+// Routes
 const secretWordRouter = require("./routes/secretWord");
+const jobsRouter = require("./routes/jobs");
 const auth = require("./middleware/auth");
+
+// Middleware
+const storeLocals = require("./middleware/storeLocals");
 
 const app = express();
 
+// View engine
 app.set("view engine", "ejs");
-app.use(require("body-parser").urlencoded({ extended: true }));
 
-const url = process.env.MONGO_URI;
+// Body parser
+app.use(express.urlencoded({ extended: true }));
 
+// Session store setup
 const store = new MongoDBStore({
-  // may throw an error, which won't be caught
   uri: url,
   collection: "mySessions",
 });
+
 store.on("error", function (error) {
   console.log(error);
 });
 
+// Session configuration
 const sessionParms = {
   secret: process.env.SESSION_SECRET,
   resave: true,
@@ -33,13 +54,23 @@ const sessionParms = {
 };
 
 if (app.get("env") === "production") {
-  app.set("trust proxy", 1); // trust first proxy
-  sessionParms.cookie.secure = true; // serve secure cookies
+  app.set("trust proxy", 1);
+  sessionParms.cookie.secure = true;
 }
 
+// Security middleware
+// app.use(helmet());
+// app.use(xss());
+app.use(rateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+}));
+
+// Middleware setup (order matters!)
+app.use(cookieParser(process.env.SESSION_SECRET));
 app.use(session(sessionParms));
 
-// Passport handling
+// Authentication middleware
 passportInit();
 app.use(passport.initialize());
 app.use(passport.session());
@@ -47,27 +78,38 @@ app.use(passport.session());
 // Flash messages
 app.use(require("connect-flash")());
 
-app.use(require("./middleware/storeLocals"));
+// Custom middleware for template locals
+app.use(storeLocals);
 app.get("/", (req, res) => {
+  const csrfToken = csrf.getToken(req, res);
   res.render("index", {
     user: req.user,
+    csrfToken: csrfToken,
   });
 });
 app.use("/sessions", require("./routes/sessionRoutes"));
 
 
 // secret word handling
-app.use("/secretWord", auth, secretWordRouter); // run auth before secretWordRouter
+app.use("/secretWord", auth, secretWordRouter);
 
+// jobs handling
+app.use("/jobs", auth, jobsRouter);
+
+// Error handling
 app.use((req, res) => {
   res.status(404).send(`That page (${req.url}) was not found.`);
 });
 
 app.use((err, req, res, next) => {
-  res.status(500).send(err.message);
+  if (err && err.name === "CSRFError") {
+    return res.status(403).send("CSRF token mismatch");
+  }
   console.log(err);
+  return res.status(500).send(err.message);
 });
 
+// Server startup
 const port = process.env.PORT || 3000;
 
 const start = async () => {
