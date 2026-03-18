@@ -12,7 +12,10 @@ const csrf = require("host-csrf");
 // Database
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
-const url = process.env.MONGO_URI;
+let mongoURL = process.env.MONGO_URI;
+if (process.env.NODE_ENV === "test") {
+  mongoURL = process.env.MONGO_URI_TEST;
+}
 
 // Authentication
 const passport = require("passport");
@@ -36,7 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session store setup
 const store = new MongoDBStore({
-  uri: url,
+  uri: mongoURL,
   collection: "mySessions",
 });
 
@@ -78,6 +81,16 @@ app.use(passport.session());
 // Flash messages
 app.use(require("connect-flash")());
 
+// Set content type based on route
+app.use((req, res, next) => {
+  if (req.path == "/multiply") {
+    res.set("Content-Type", "application/json");
+  } else {
+    res.set("Content-Type", "text/html");
+  }
+  next();
+});
+
 // Custom middleware for template locals
 app.use(storeLocals);
 app.get("/", (req, res) => {
@@ -96,6 +109,17 @@ app.use("/secretWord", auth, secretWordRouter);
 // jobs handling
 app.use("/jobs", auth, jobsRouter);
 
+// testing
+app.get("/multiply", (req, res) => {
+  let result = req.query.first * req.query.second;
+  if (result.isNaN) {
+    result = "NaN";
+  } else if (result == null) {
+    result = "null";
+  }
+  res.json({ result: result });
+});
+
 // Error handling
 app.use((req, res) => {
   res.status(404).send(`That page (${req.url}) was not found.`);
@@ -111,10 +135,9 @@ app.use((err, req, res, next) => {
 
 // Server startup
 const port = process.env.PORT || 3000;
-
-const start = async () => {
+const start = () => {
   try {
-    await require("./db/connect")(process.env.MONGO_URI);
+    require("./db/connect")(process.env.MONGO_URI);
     app.listen(port, () =>
       console.log(`Server is listening on port ${port}...`),
     );
@@ -124,3 +147,5 @@ const start = async () => {
 };
 
 start();
+
+module.exports = { app };
