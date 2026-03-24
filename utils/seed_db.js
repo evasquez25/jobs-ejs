@@ -1,24 +1,54 @@
 const Job = require("../models/Job");
 const User = require("../models/User");
 const faker = require("@faker-js/faker").fakerEN_US;
-const FactoryBot = require("factory-bot");
 require("dotenv").config();
 
 const testUserPassword = faker.internet.password();
-const factory = FactoryBot.factory;
-const factoryAdapter = new FactoryBot.MongooseAdapter();
-factory.setAdapter(factoryAdapter);
-factory.define("job", Job, {
-  company: () => faker.company.name(),
-  position: () => faker.person.jobTitle(),
-  status: () =>
-    ["interview", "declined", "pending"][Math.floor(3 * Math.random())], // random one of these
+
+const buildJob = (overrides = {}) => ({
+  company: faker.company.name(),
+  position: faker.person.jobTitle(),
+  status:
+    ["Interview", "Declined", "Pending"][Math.floor(3 * Math.random())], // random one of these
+  ...overrides,
 });
-factory.define("user", User, {
-  name: () => faker.person.fullName(),
-  email: () => faker.internet.email(),
-  password: () => faker.internet.password(),
+
+const buildUser = (overrides = {}) => ({
+  name: faker.person.fullName(),
+  email: faker.internet.email(),
+  password: faker.internet.password(),
+  ...overrides,
 });
+
+const factory = {
+  async build(name, overrides = {}) {
+    if (name === "job") {
+      return buildJob(overrides);
+    }
+    if (name === "user") {
+      return buildUser(overrides);
+    }
+    throw new Error(`Unknown factory: ${name}`);
+  },
+
+  async create(name, overrides = {}) {
+    if (name === "job") {
+      return Job.create(buildJob(overrides));
+    }
+    if (name === "user") {
+      return User.create(buildUser(overrides));
+    }
+    throw new Error(`Unknown factory: ${name}`);
+  },
+
+  async createMany(name, count, overrides = {}) {
+    const docs = [];
+    for (let i = 0; i < count; i += 1) {
+      docs.push(await this.create(name, overrides));
+    }
+    return docs;
+  },
+};
 
 const seed_db = async () => {
   let testUser = null;
