@@ -6,15 +6,15 @@ require("dotenv").config();
 const testUserPassword = faker.internet.password();
 
 const buildJob = (overrides = {}) => ({
-  company: faker.company.name(),
-  position: faker.person.jobTitle(),
+  company: faker.company.name().slice(0, 50),
+  position: faker.person.jobTitle().slice(0,100),
   status:
     ["Interview", "Declined", "Pending"][Math.floor(3 * Math.random())], // random one of these
   ...overrides,
 });
 
 const buildUser = (overrides = {}) => ({
-  name: faker.person.fullName(),
+  name: faker.person.fullName().slice(0, 50),
   email: faker.internet.email(),
   password: faker.internet.password(),
   ...overrides,

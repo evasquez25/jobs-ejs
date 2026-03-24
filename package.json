@@ -15,7 +15,7 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_ENV=test mocha tests/*.js --timeout 5000 --exit",
+    "test": "XS_COOKIE_DEVELOPMENT_MODE=true NODE_ENV=test mocha tests/*.js --timeout 5000 --exit",
     "dev": "nodemon app.js",
     "start": "node app.js"
   },
