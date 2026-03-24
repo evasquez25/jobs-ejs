@@ -111,12 +111,12 @@ app.use("/jobs", auth, jobsRouter);
 
 // testing
 app.get("/multiply", (req, res) => {
-  let result = req.query.first * req.query.second;
-  if (result.isNaN) {
+  let result = Number(req.query.first) * Number(req.query.second);
+
+  if (Number.isNaN(result)) {
     result = "NaN";
-  } else if (result == null) {
-    result = "null";
   }
+
   res.json({ result: result });
 });
 
