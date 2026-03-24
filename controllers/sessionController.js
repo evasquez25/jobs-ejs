@@ -1,8 +1,10 @@
 const User = require("../models/User");
 const parseVErr = require("../utils/parseValidationErrs");
+const csrf = require("host-csrf");
 
 const registerShow = (req, res) => {
-  res.render("register");
+  const csrfToken = csrf.getToken(req, res);
+  res.render("register", { csrfToken });
 };
 
 const registerDo = async (req, res, next) => {

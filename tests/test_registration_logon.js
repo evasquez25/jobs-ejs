@@ -11,13 +11,13 @@ describe("tests for registration and logon", function () {
   // });
   it("should get the registration page", async () => {
     const { expect, request } = await get_chai();
-    const req = request.execute(app).get("/session/register").send();
+    const req = request.execute(app).get("/sessions/register").send();
     const res = await req;
     expect(res).to.have.status(200);
     expect(res).to.have.property("text");
     expect(res.text).to.include("Enter your name");
     const textNoLineEnd = res.text.replaceAll("\n", "");
-    const csrfToken = /_csrf\" value=\"(.*?)\"/.exec(textNoLineEnd);
+    const csrfToken = /name="_csrf" value="(.*?)"/.exec(textNoLineEnd);
     expect(csrfToken).to.not.be.null;
     this.csrfToken = csrfToken[1];
     expect(res).to.have.property("headers");
@@ -42,7 +42,7 @@ describe("tests for registration and logon", function () {
     };
     const req = request
       .execute(app)
-      .post("/session/register")
+      .post("/sessions/register")
       .set("Cookie", this.csrfCookie)
       .set("content-type", "application/x-www-form-urlencoded")
       .send(dataToPost);
@@ -63,7 +63,7 @@ describe("tests for registration and logon", function () {
     const { expect, request } = await get_chai();
     const req = request
       .execute(app)
-      .post("/session/logon")
+      .post("/sessions/logon")
       .set("Cookie", this.csrfCookie)
       .set("content-type", "application/x-www-form-urlencoded")
       .redirects(0)
