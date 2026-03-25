@@ -1,11 +1,11 @@
 const { app } = require("../app");
-const { factory, seed_db } = require("../utils/seed_db");
+const { factory } = require("../utils/seed_db");
 const faker = require("@faker-js/faker").fakerEN_US;
 const get_chai = require("../utils/get_chai");
 
 const User = require("../models/User");
 
-describe("tests for registration and logon", function () {
+describe("tests for registration, logon, and logoff", function () {
   // after(() => {
   //   server.close();
   // });
@@ -90,5 +90,21 @@ describe("tests for registration and logon", function () {
     expect(res).to.have.status(200);
     expect(res).to.have.property("text");
     expect(res.text).to.include(this.user.name);
+  });
+  
+  it("should log the user off", async () => {
+    const { expect, request } = await get_chai();
+    const dataToPost = {
+      _csrf: this.csrfToken,
+    };
+    const req = request
+      .execute(app)
+      .post("/sessions/logoff")
+      .set("Cookie", this.csrfCookie + "; " + this.sessionCookie)
+      .set("content-type", "application/x-www-form-urlencoded")
+      .send(dataToPost);
+    const res = await req;
+    expect(res).to.have.status(200);
+    expect(res.text).to.include("link to logon");
   });
 });
