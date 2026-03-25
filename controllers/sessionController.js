@@ -1,8 +1,10 @@
 const User = require("../models/User");
 const parseVErr = require("../utils/parseValidationErrs");
+const csrf = require("host-csrf");
 
 const registerShow = (req, res) => {
-  res.render("register");
+  const csrfToken = csrf.getToken(req, res);
+  res.render("register", { csrfToken });
 };
 
 const registerDo = async (req, res, next) => {
@@ -17,6 +19,7 @@ const registerDo = async (req, res, next) => {
       parseVErr(e, req);
     } else if (e.name === "MongoServerError" && e.code === 11000) {
       req.flash("errors", "That email address is already registered.");
+      return res.status(400).render("register", {  errors: req.flash("errors") });
     } else {
       return next(e);
     }

@@ -12,7 +12,10 @@ const csrf = require("host-csrf");
 // Database
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
-const url = process.env.MONGO_URI;
+let mongoURL = process.env.MONGO_URI;
+if (process.env.NODE_ENV === "test") {
+  mongoURL = process.env.MONGO_URI_TEST;
+}
 
 // Authentication
 const passport = require("passport");
@@ -36,7 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Session store setup
 const store = new MongoDBStore({
-  uri: url,
+  uri: mongoURL,
   collection: "mySessions",
 });
 
@@ -78,6 +81,16 @@ app.use(passport.session());
 // Flash messages
 app.use(require("connect-flash")());
 
+// Set content type based on route
+app.use((req, res, next) => {
+  if (req.path == "/multiply") {
+    res.set("Content-Type", "application/json");
+  } else {
+    res.set("Content-Type", "text/html");
+  }
+  next();
+});
+
 // Custom middleware for template locals
 app.use(storeLocals);
 app.get("/", (req, res) => {
@@ -96,6 +109,17 @@ app.use("/secretWord", auth, secretWordRouter);
 // jobs handling
 app.use("/jobs", auth, jobsRouter);
 
+// testing
+app.get("/multiply", (req, res) => {
+  let result = Number(req.query.first) * Number(req.query.second);
+
+  if (Number.isNaN(result)) {
+    result = "NaN";
+  }
+
+  res.json({ result: result });
+});
+
 // Error handling
 app.use((req, res) => {
   res.status(404).send(`That page (${req.url}) was not found.`);
@@ -111,16 +135,18 @@ app.use((err, req, res, next) => {
 
 // Server startup
 const port = process.env.PORT || 3000;
-
-const start = async () => {
+const start = () => {
   try {
-    await require("./db/connect")(process.env.MONGO_URI);
-    app.listen(port, () =>
-      console.log(`Server is listening on port ${port}...`),
-    );
+    require("./db/connect")(process.env.MONGO_URI);
+    app.listen(port, () => {
+      console.log("Database connected");
+      console.log(`Server is listening on port ${port}...`);
+    });
   } catch (error) {
     console.log(error);
   }
 };
 
 start();
+
+module.exports = { app };
